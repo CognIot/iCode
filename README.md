@@ -10,7 +10,7 @@ To build the application run the following commands (shown with <>)
 1. Download and install cmake
         <apt-get install cmake>
 
-2. Build make lists
+2. Build make lists 
         <cd NFC2/rfal_v1.3.0/build>
         <cmake ..>
 
