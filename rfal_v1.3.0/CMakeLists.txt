@@ -7,6 +7,8 @@ cmake_minimum_required (VERSION 2.8.11)
 
 project (rfal)
 
+add_compile_options(-std=gnu99)
+
 add_subdirectory (rfal)
 add_subdirectory (applications)
 
