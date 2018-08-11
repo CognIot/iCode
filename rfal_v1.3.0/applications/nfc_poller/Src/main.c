@@ -38,20 +38,6 @@
  */
 #define logUsart	printf
 
-int splashscreen(void)
-{
-    printf("***********************************************");
-    printf("*             Bostin Technology               *");
-    printf("*                                             *");
-    printf("*                NFC2 Reader                  *");
-    printf("*                                             *");
-    printf("*           Based on the ST25R3911B           *");
-    printf("*             demo provided by ST             *");
-    printf("*                                             *");
-    printf("*        for more info www.cognIoT.eu         *");
-    printf("***********************************************\n");
-    return (0);
-}
 /*
  ******************************************************************************
  * MAIN FUNCTION
@@ -63,7 +49,6 @@ int main(void)
 	setlinebuf(stdout);
 	int ret = 0;
 
-    splashscreen();
 
 	/* Initialize the platform */
 	/* Initialize GPIO */

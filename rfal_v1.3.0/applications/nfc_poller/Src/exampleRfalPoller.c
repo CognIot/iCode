@@ -71,7 +71,7 @@
 #include "rfal_nfcDep.h"
 #include "rfal_analogConfig.h"
 
-const char* LOG_HEADER = "\nScanning for NFC technologies ";
+const char* LOG_HEADER = "\r\nDemo Software provided by Bostin Technology\n\rScanning for NFC technologies \n\r";
 
 
 
@@ -213,6 +213,28 @@ static bool exampleRfalPollerDeactivate( void );
 
 /*
 ******************************************************************************
+* INITIAL SCREEN
+******************************************************************************
+*/
+int splashscreen(void)
+{
+    platformLogClear();
+    printf("\n***********************************************\n");
+    printf("*             Bostin Technology               *\n");
+    printf("*                                             *\n");
+    printf("*                NFC2 Reader                  *\n");
+    printf("*                                             *\n");
+    printf("*           Based on the ST25R3911B           *\n");
+    printf("*             demo provided by ST             *\n");
+    printf("*                                             *\n");
+    printf("*        for more info www.cognIoT.eu         *\n");
+    printf("***********************************************\n");
+    platformDelay(2000);
+    return (0);
+}
+
+/*
+******************************************************************************
 * GLOBAL FUNCTIONS
 ******************************************************************************
 */
@@ -232,10 +254,13 @@ extern void exampleRfalPollerRun( void )
     ReturnCode err;
     uint8_t    i;
     
+    splashscreen();
+    
     rfalAnalogConfigInitialize();                                                     /* Initialize RFAL's Analog Configs */
 	rfalInitialize();                                                                 /* Initialize RFAL */
-	platformLog("\n\rExample RFAL Poller started \r\n");
-	
+	//platformLog("\n\rExample RFAL Poller started \r\n");
+
+    
 	for(;;)
 	{
 	    rfalWorker();                                                                 /* Execute RFAL process */
@@ -362,8 +387,8 @@ extern void exampleRfalPollerRun( void )
 	            platformDelay(2);                                                     /* Remain a certain period with field off */
 	            gState = EXAMPLE_RFAL_POLLER_STATE_INIT;                              /* Restart the loop */
 
-platformLogClear();
-platformLog2Screen(logBuffer);
+                platformLogClear();
+                platformLog2Screen(logBuffer);
 
 	            break;
 	        
