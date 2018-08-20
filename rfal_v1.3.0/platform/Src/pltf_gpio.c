@@ -136,7 +136,10 @@ ReturnCode gpio_init(void)
 		printf("Error: opening edge file to configure interrupt pin\n");
 		goto error;
 	}
+
+    //MB this appears to be wrong - fixed to 7, trying eith parameter instead.
 	ret = write(fd_edgeGPIO, "rising", 7);
+	//ret = write(fd_edgeGPIO, "rising", PLTF_GPIO_INTR_PIN);
 	if (ret <= 0) {
 		printf("Error: writing gpio edge setting for interrupt pin\n");
 		goto error;
@@ -290,7 +293,7 @@ void gpio_set(int port, int pin_no)
 	{
 		ret = write(fd_dir, "out", 4);	
 		if (ret <= 0){
-			printf("Error: gpio_set() writing to dir file\n"); 
+			printf("Error: gpio_set() writing to dir file:%d\n", pin_no); 
 			goto error;
 		}
 	}  
@@ -362,7 +365,9 @@ void gpio_clear(int port, int pin_no)
 	{
 		ret = write(fd_dir, "out", 4);	
 		if (ret <= 0){
-			printf("Error: gpio_set() writing to dir file\n"); 
+            /* MB CHanged as yet another error: printf("Error: gpio_clear() writing to dir file:%s\n" pin_no);
+               MB Also added pin number output */
+			printf("Error: gpio_clear() writing to dir file:%d\n", pin_no); 
 			goto error;
 		}
 	}  

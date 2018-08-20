@@ -50,7 +50,9 @@
 /* GPIO pin no. 7 is used as interrupt line to receive interrupts from ST25R3911X.
  * To use another pin as interrupt line please change the below definition.
  */ 
-#define PLTF_GPIO_INTR_PIN	7
+//#define PLTF_GPIO_INTR_PIN	7
+// CHanged to GPIO 22, pin 13 to suit Bostin Tech board.
+#define PLTF_GPIO_INTR_PIN	22
 
 /*
  ******************************************************************************
