@@ -71,15 +71,16 @@
 ******************************************************************************
 */
 
+/*
 #define LED_NFCA_PIN				13
 #define LED_NFCB_PIN				6
 #define LED_NFCF_PIN				5
 #define LED_NFCV_PIN				22
-#define LED_AP2P_PIN				27
+#define LED_AP2P_PIN				27 
 #define LED_NFCA_PORT				0
 #define LED_NFCB_PORT				0
 #define LED_NFCF_PORT				0
-#define LED_NFCV_PORT				0
+#define LED_NFCV_PORT				0  */       /* These have been removed as they are not required as LEDs are not being used*/
 #define LED_FIELD_Pin				24
 #define LED_FIELD_GPIO_Port			0
 
