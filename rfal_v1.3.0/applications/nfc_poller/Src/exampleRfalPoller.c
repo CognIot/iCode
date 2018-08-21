@@ -260,7 +260,7 @@ extern void exampleRfalPollerRun( void )
 	rfalInitialize();                                                                 /* Initialize RFAL */
 	//platformLog("\n\rExample RFAL Poller started \r\n");
 
-    
+   
 	for(;;)
 	{
 	    rfalWorker();                                                                 /* Execute RFAL process */
@@ -270,6 +270,10 @@ extern void exampleRfalPollerRun( void )
 	    //platformLedOff(LED_NFCB_PORT, LED_NFCB_PIN);
 	    //platformLedOff(LED_NFCF_PORT, LED_NFCF_PIN);
 	    //platformLedOff(LED_NFCV_PORT, LED_NFCV_PIN);    
+	    platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);                        /* Added by MB to switch LED off */
+
+        platformLedOn(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
 		platformDelay(20);
 
 	    switch( gState )
@@ -316,21 +320,25 @@ extern void exampleRfalPollerRun( void )
 	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCA:
 	                        platformLog( " NFC-A device UID: %s \r\n", hex2str(gDevList[i].dev.nfca.nfcId1, gDevList[i].dev.nfca.nfcId1Len) );
 	                        //platformLedOn( LED_NFCA_PORT, LED_NFCA_PIN  );
+                            platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
 	                        break;
 	                        
 	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCB:
 	                        platformLog( " NFC-B device UID: %s \r\n", hex2str(gDevList[i].dev.nfcb.sensbRes.nfcid0, RFAL_NFCB_NFCID0_LEN) );
 	                        //platformLedOn( LED_NFCB_PORT, LED_NFCB_PIN  );
+                            platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
                             break;
                             
 	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCF:
 	                        platformLog( " NFC-F device UID: %s \r\n", hex2str(gDevList[i].dev.nfcf.sensfRes.NFCID2, RFAL_NFCF_NFCID2_LEN) );
                             //platformLedOn( LED_NFCF_PORT, LED_NFCF_PIN  );
+                            platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
                             break;
                             
 	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCV:
 	                        platformLog( " NFC-V device UID: %s \r\n", hex2str(gDevList[i].dev.nfcv.InvRes.UID, RFAL_NFCV_UID_LEN) );
                             //platformLedOn( LED_NFCV_PORT, LED_NFCV_PIN  );
+                            platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
                             break;
 	                }
 	            }

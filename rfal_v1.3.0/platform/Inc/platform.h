@@ -81,7 +81,12 @@
 #define LED_NFCB_PORT				0
 #define LED_NFCF_PORT				0
 #define LED_NFCV_PORT				0  */       /* These have been removed as they are not required as LEDs are not being used*/
-#define LED_FIELD_Pin				24
+
+/* New bit added by MB to have a single LED to indicate presence of a tag */
+#define LED_TAG_READ_PIN            21  
+#define LED_TAG_READ_PORT           0
+
+#define LED_FIELD_Pin				17           /* Was 24 - MB */
 #define LED_FIELD_GPIO_Port			0
 
 #define ST25R391X_SS_PIN                                                /*!< GPIO pin used for ST25R3911 SPI SS */ 
