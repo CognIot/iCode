@@ -1,0 +1,31 @@
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/pi/.netbeans/remote/192.168.1.182/bennettsmacbook.home-MacOSX-x86_64/Users/matthew/Documents/Bostin Technology/NFC2/rfal_v1.3.0/build
+Scanning dependencies of target rfal_lib
+[  4%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_analogConfig.c.o
+[  8%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_crc.c.o
+[ 12%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_dynamicPower.c.o
+[ 16%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_iso15693_2.c.o
+[ 20%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_isoDep.c.o
+[ 25%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_nfcDep.c.o
+[ 29%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_nfca.c.o
+[ 33%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_nfcb.c.o
+[ 37%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_nfcf.c.o
+[ 41%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_nfcv.c.o
+[ 45%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_st25tb.c.o
+[ 50%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/rfal_t1t.c.o
+[ 54%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/st25r3911/rfal_rfst25r3911.c.o
+[ 58%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/st25r3911/st25r3911.c.o
+[ 62%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/st25r3911/st25r3911_com.c.o
+[ 66%] Building C object rfal/CMakeFiles/rfal_lib.dir/Src/st25r3911/st25r3911_interrupt.c.o
+[ 70%] Building C object rfal/CMakeFiles/rfal_lib.dir/__/platform/Src/pltf_gpio.c.o
+[ 75%] Building C object rfal/CMakeFiles/rfal_lib.dir/__/platform/Src/pltf_spi.c.o
+[ 79%] Building C object rfal/CMakeFiles/rfal_lib.dir/__/platform/Src/pltf_timer.c.o
+[ 83%] Linking C shared library librfal_lib.so
+[ 83%] Built target rfal_lib
+Scanning dependencies of target nfcPoller
+[ 87%] Building C object applications/CMakeFiles/nfcPoller.dir/nfc_poller/Src/main.c.o
+[ 91%] Building C object applications/CMakeFiles/nfcPoller.dir/nfc_poller/Src/exampleRfalPoller.c.o
+[ 95%] Building C object applications/CMakeFiles/nfcPoller.dir/nfc_poller/Src/logger.c.o
+[100%] Linking C executable nfcPoller
+[100%] Built target nfcPoller

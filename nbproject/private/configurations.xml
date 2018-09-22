@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="97">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="rfal_v1.3.0" name="0">
+      <df name="applications">
+        <df name="nfc_poller">
+          <df name="Inc">
+            <in>example_poller.h</in>
+            <in>logger.h</in>
+          </df>
+          <df name="Src">
+            <in>exampleRfalPoller.c</in>
+            <in>logger.c</in>
+            <in>main.c</in>
+          </df>
+        </df>
+      </df>
+      <df name="build">
+      </df>
+      <df name="common">
+        <df name="utils">
+          <df name="Inc">
+            <in>st_errno.h</in>
+            <in>utils.h</in>
+          </df>
+        </df>
+      </df>
+      <df name="platform">
+        <df name="Inc">
+          <in>platform.h</in>
+          <in>pltf_gpio.h</in>
+          <in>pltf_spi.h</in>
+          <in>pltf_timer.h</in>
+        </df>
+        <df name="Src">
+          <in>pltf_gpio.c</in>
+          <in>pltf_spi.c</in>
+          <in>pltf_timer.c</in>
+        </df>
+      </df>
+      <df name="rfal">
+        <df name="doc">
+          <df name="_htmresc">
+          </df>
+        </df>
+        <df name="Inc">
+          <in>rfal_analogConfig.h</in>
+          <in>rfal_chip.h</in>
+          <in>rfal_dynamicPower.h</in>
+          <in>rfal_isoDep.h</in>
+          <in>rfal_nfcDep.h</in>
+          <in>rfal_nfca.h</in>
+          <in>rfal_nfcb.h</in>
+          <in>rfal_nfcf.h</in>
+          <in>rfal_nfcv.h</in>
+          <in>rfal_rf.h</in>
+          <in>rfal_st25tb.h</in>
+          <in>rfal_t1t.h</in>
+        </df>
+        <df name="Src">
+          <df name="st25r3911">
+            <in>rfal_analogConfigTbl.h</in>
+            <in>rfal_dynamicPowerTbl.h</in>
+            <in>rfal_features.h</in>
+            <in>rfal_rfst25r3911.c</in>
+            <in>st25r3911.c</in>
+            <in>st25r3911.h</in>
+            <in>st25r3911_com.c</in>
+            <in>st25r3911_com.h</in>
+            <in>st25r3911_interrupt.c</in>
+            <in>st25r3911_interrupt.h</in>
+          </df>
+          <in>rfal_analogConfig.c</in>
+          <in>rfal_crc.c</in>
+          <in>rfal_crc.h</in>
+          <in>rfal_dynamicPower.c</in>
+          <in>rfal_iso15693_2.c</in>
+          <in>rfal_iso15693_2.h</in>
+          <in>rfal_isoDep.c</in>
+          <in>rfal_nfcDep.c</in>
+          <in>rfal_nfca.c</in>
+          <in>rfal_nfcb.c</in>
+          <in>rfal_nfcf.c</in>
+          <in>rfal_nfcv.c</in>
+          <in>rfal_st25tb.c</in>
+          <in>rfal_t1t.c</in>
+        </df>
+      </df>
+    </df>
+  </logicalFolder>
+  <projectmakefile>rfal_v1.3.0/build/Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0" platformSpecific="true">
+      <toolsSet>
+        <developmentServer>pi@192.168.1.182:22</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+            <option name="gdb_detach_on_fork" value="off"/>
+            <option name="gdb_init_file" value=""/>
+            <option name="debug_dir"
+                    value="/Users/matthew/Documents/Bostin Technology/NFC2/."/>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>sudo -upi "${OUTPUT_PATH}"</runcommandpicklistitem>
+          <runcommandpicklistitem>sudo -uroot "${OUTPUT_PATH}"</runcommandpicklistitem>
+          <runcommandpicklistitem>sudo "${OUTPUT_PATH}"</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir>rfal_v1.3.0/build</rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+  </confs>
+</configurationDescriptor>
