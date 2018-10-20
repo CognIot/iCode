@@ -42,6 +42,9 @@
  * INCLUDES
  ******************************************************************************
  */
+
+#include <stdio.h>
+ 
 #include "rfal_nfcv.h"
 #include "utils.h"
 
@@ -215,16 +218,19 @@ ReturnCode rfalNfcvPollerInitialize( void )
 ReturnCode rfalNfcvPollerCheckPresence( rfalNfcvInventoryRes *invRes )
 {
     ReturnCode ret;
+    printf("DEBUG: Here in Check Presence\n");
     
     /* INVENTORY_REQ with 1 slot and no Mask   Activity 2.0 (Candidate) 9.2.3.32 */
     ret = rfalNfcvPollerInventory( RFAL_NFCV_NUM_SLOTS_1, 0, NULL, invRes, NULL );
+
+    printf("DEBUG: Here in Check Presence, after Poller Inventory:%d\n", ret);
     
     if( (ret == ERR_RF_COLLISION) || (ret == ERR_CRC)  || 
         (ret == ERR_FRAMING)      || (ret == ERR_PROTO)  )
     {
         ret = ERR_NONE;
     }
-    
+    printf("Returning:%d\n", ret);
     return ret;
 }
 
@@ -234,6 +240,9 @@ ReturnCode rfalNfcvPollerInventory( rfalNfcvNumSlots nSlots, uint8_t maskLen, ui
     ReturnCode           ret;
     rfalNfcvInventoryReq invReq;
     uint16_t             rxLen;
+
+    printf("DEBUG: Here in Pollar Inventory\n");
+
     
     if( ((maskVal == NULL) && (maskLen != 0)) || (invRes == NULL) )
     {
@@ -257,6 +266,7 @@ ReturnCode rfalNfcvPollerInventory( rfalNfcvNumSlots nSlots, uint8_t maskLen, ui
     {
         if( rxLen != rfalConvBytesToBits(RFAL_NFCV_INV_RES_LEN + RFAL_NFCV_CRC_LEN) )
         {
+            printf("DEBUG: Poller Inventory - Protocol Error");
             return ERR_PROTO;
         }
     }
@@ -418,7 +428,9 @@ ReturnCode rfalNfvPollerSleep( uint8_t flags, uint8_t* uid )
 }
 
 /*******************************************************************************/
-ReturnCode rfalNfvSelect( uint8_t flags, uint8_t* uid )
+
+// MB 20-10-18: Added 'Poller' into the name below
+ReturnCode rfalNfvPollerSelect( uint8_t flags, uint8_t* uid )
 {
     uint16_t           rcvLen;
     ReturnCode         ret;
@@ -457,7 +469,7 @@ ReturnCode rfalNfvSelect( uint8_t flags, uint8_t* uid )
 }
 
 /*******************************************************************************/
-ReturnCode rfalNfvReadSingleBlock( uint8_t flags, uint8_t* uid, uint8_t blockNum, uint8_t* rxBuf, uint16_t rxBufLen, uint16_t *rcvLen )
+ReturnCode rfalNfvPollerReadSingleBlock( uint8_t flags, uint8_t* uid, uint8_t blockNum, uint8_t* rxBuf, uint16_t rxBufLen, uint16_t *rcvLen )
 {
     ReturnCode         ret;
     rfalNfcvGenericReq req;
@@ -466,6 +478,8 @@ ReturnCode rfalNfvReadSingleBlock( uint8_t flags, uint8_t* uid, uint8_t blockNum
     
     msgIt = 0;
     res   = (rfalNfcvGenericRes*)rxBuf;
+
+    printf("DEBUG: Here in Read Single Block\n");
     
     /* Compute Request Command */
     req.REQ_FLAG  = (flags & (~RFAL_NFCV_REQ_FLAG_ADDRESS & ~RFAL_NFCV_REQ_FLAG_SELECT));
@@ -474,6 +488,7 @@ ReturnCode rfalNfvReadSingleBlock( uint8_t flags, uint8_t* uid, uint8_t blockNum
     /* Check if request is to be sent in Addressed or Selected mode */
     if( uid != NULL )
     {
+        printf("DEBUG: Read Single Block - Addressed Mode\n");
         req.REQ_FLAG |= RFAL_NFCV_REQ_FLAG_ADDRESS;
         ST_MEMCPY( req.payload.UID, uid, RFAL_NFCV_UID_LEN );
         msgIt += RFAL_NFCV_UID_LEN;
@@ -481,26 +496,32 @@ ReturnCode rfalNfvReadSingleBlock( uint8_t flags, uint8_t* uid, uint8_t blockNum
     }
     else
     {
+        printf("DEBUG: Read Single Block - Selected Mode\n");
         req.REQ_FLAG |= RFAL_NFCV_REQ_FLAG_SELECT;
         req.payload.data[msgIt++] = blockNum;
     }
     
     /* Transceive Command */
+    printf("DEBUG: Read Single Block - Transceive Command\n");
+
     ret = rfalTransceiveBlockingTxRx( (uint8_t*)&req, (RFAL_CMD_LEN + RFAL_NFCV_FLAG_LEN + msgIt), rxBuf, rxBufLen, rcvLen, RFAL_TXRX_FLAGS_DEFAULT, RFAL_FDT_POLL_MAX );
     if( ret != ERR_NONE )
     {
+        printf("DEBUG: Read Single Block - error %d\n", ret);
         return ret;
     }
     
     /* Check if the response minimum length has been received */
     if( (*rcvLen) < RFAL_NFCV_FLAG_LEN )
     {
+        printf("DEBUG: Read Single Block - Error protocol\n");
         return ERR_PROTO;
     }
     
     /* Check if an error has been signalled */
     if( res->RES_FLAG & RFAL_NFCV_RES_FLAG_ERROR )
     {
+        printf("DEBUG: Read Single Block - error signalled\n");
         return rfalNfvParseError( *(res->data) );
     }
     

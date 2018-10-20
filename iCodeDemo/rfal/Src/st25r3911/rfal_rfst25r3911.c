@@ -50,6 +50,7 @@
 #include "st25r3911_interrupt.h"
 #include "rfal_analogConfig.h"
 #include "rfal_iso15693_2.h"
+
 /*
 ******************************************************************************
 * GLOBAL TYPES
