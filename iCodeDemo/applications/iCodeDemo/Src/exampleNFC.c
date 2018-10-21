@@ -138,7 +138,7 @@ static uint8_t                 t5tSysInfoReq[] = { 0x02, 0x2B };                
 static uint8_t                 nfcbReq[]       = { 0x00 };                                                                                       /* NFC-B proprietary command */
 static uint8_t                 llcpSymm[]      = { 0x00, 0x00 };                                                                                 /* LLCP SYMM command */
 
-// Added by MB as a test to senda differnet command
+// Added by MB as a test to send a different command
 static uint8_t                 CommandToSend[] = { 0x02, 0x20, 0x00 };
 
 static uint8_t                 gNfcid3[]       = {0x01, 0xFE, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A };                                  /* NFCID3 used for ATR_REQ */
@@ -1535,11 +1535,11 @@ static void readNFCVSingleBlock(void)
 {
     /* Setup the required variables     */
     ReturnCode ret;                          /* The value returned from the various functions */
-    uint8_t i;                              /* Counter */
+    uint8_t i, j;                              /* Counter */
     uint16_t    rcvdLen;                       /* The number of bits received without collision */
     uint8_t devLimit = 10;                  /* The maximum number of devices to detect */
-    rfalNfcvListenDevice nfcvDevList;      /* Device Structure. */
-    uint8_t devCnt;                          /* Count of the devices found */
+    rfalNfcvListenDevice nfcvDevList[devLimit];      /* Device Structure. */
+    uint8_t devCnt = 0;                          /* Count of the devices found */
     uint16_t rxBufLen = 32;                          /* Length of the rxbuf */
     uint8_t rxBuf[rxBufLen];                   /* Where the received information is stored */
     uint16_t rcvLen;                           /* Received length of data */
@@ -1605,11 +1605,12 @@ static void readNFCVSingleBlock(void)
         printf("Getting there\n");
         printf("Tag UID Read:%s", invRes.UID);
     }
-#endif 
+#endif
+/* #endif */
 
     /* Collision Resolution */
     printf("Performing Collision Resolution\n");
-    ret = rfalNfcvPollerCollisionResolution( devLimit, &nfcvDevList, &devCnt );
+    ret = rfalNfcvPollerCollisionResolution( devLimit, nfcvDevList, &devCnt );
     if (ret != ERR_NONE)
     {
         printf("Failed to complete collision resolution:%s\n", ret);
@@ -1619,16 +1620,25 @@ static void readNFCVSingleBlock(void)
     else
     {
         printf("DEBUG: Collision Resolution completed\n");
-        printf("UIDs Found:-%d\n", nfcvDevList.InvRes.UID);
-        for (i=0; i++; i > devCnt)
+        printf("Address of UID[0] Found:-%d\n", nfcvDevList[0].InvRes.UID);
+        printf("Pointed To*:: UID[0] Found:-%x\n", *nfcvDevList[0].InvRes.UID);
+        printf("Device Count:%d\n", devCnt);
+        printf("rfal Nfc V UID Length:%d\n", RFAL_NFCV_UID_LEN);
+        for (i=0; i < devCnt; i++)
         {
-            printf("UID:%s\n", nfcvDevList.InvRes.UID[i]);
+            //printf("Here-1\n");
+            for (j=0; j < RFAL_NFCV_UID_LEN; j++)
+            {
+                //printf("Here-2\n");
+                printf("UID:%x", *(nfcvDevList[i].InvRes.UID + j));
+            }
+            printf("\n");
         }
     }
     
     /* Select tag */
     printf("Select the required Tag\n");
-    ret = rfalNfvPollerSelect( RFAL_NFCV_REQ_FLAG_DEFAULT, nfcvDevList.InvRes.UID );
+    ret = rfalNfvPollerSelect( RFAL_NFCV_REQ_FLAG_DEFAULT, nfcvDevList[0].InvRes.UID );
     if (ret != ERR_NONE)
     {
         printf("Failed to complete tag Selection Selection:%s\n", ret);
@@ -1640,7 +1650,8 @@ static void readNFCVSingleBlock(void)
         printf("DEBUG: Tag Selection completed\n");
     }
     /* Read Single Block */
-    ret = rfalNfvPollerReadSingleBlock( RFAL_NFCV_REQ_FLAG_DEFAULT, nfcvDevList.InvRes.UID, 1, rxBuf, sizeof(rxBuf), &rcvLen ); //NULL, 0, rxBuf, rxBufLen, rcvLen ); //
+    //ret = rfalNfvPollerReadSingleBlock( RFAL_NFCV_REQ_FLAG_DEFAULT, nfcvDevList[0].InvRes.UID, 1, rxBuf, sizeof(rxBuf), &rcvLen ); //NULL, 0, rxBuf, rxBufLen, rcvLen ); //
+    ret = rfalNfvPollerReadSingleBlock( RFAL_NFCV_REQ_FLAG_DEFAULT, NULL, 0, rxBuf, sizeof(rxBuf), &rcvLen ); //NULL, 0, rxBuf, rxBufLen, rcvLen ); //
     if (ret != ERR_NONE)
     {
         printf("Failed to |Read block of data for the tag:%s\n", ret);
@@ -1652,7 +1663,12 @@ static void readNFCVSingleBlock(void)
         printf("DEBUG: Tag Block Read\n");
         if (rcvLen > 0)
         {
-            printf("Data Recevied:%s\n", rxBuf);
+            printf("Data Received:%s\n", rxBuf);
+            for (j=0; j < rcvLen; j++)
+            {
+                //printf("Here-2\n");
+                printf("rxbuf:%x\n", *(rxBuf + j));
+            }
         }
     }
     /* Sleep */
