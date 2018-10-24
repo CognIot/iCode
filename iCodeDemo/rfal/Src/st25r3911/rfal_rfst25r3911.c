@@ -2584,7 +2584,7 @@ ReturnCode rfalISO15693TransceiveAnticollisionFrame( uint8_t *txBuf, uint8_t txB
 {
     ReturnCode            ret;
     rfalTransceiveContext ctx;
-    
+
     /* Check if RFAL is properly initialized */
     if( (gRFAL.state < RFAL_STATE_MODE_SET) || ( gRFAL.mode != RFAL_MODE_POLL_NFCV ) )
     {
