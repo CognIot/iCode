@@ -1616,7 +1616,12 @@ static void readNFCVSingleBlock(void)
         platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
         return;
     }
-
+    else
+    {
+        /* Tunr onthe LED as tag selected */
+        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+    }
+    
     /* Read Single Block */
     ret = rfalNfvPollerReadSingleBlock( RFAL_NFCV_REQ_FLAG_DEFAULT, NULL, 0, rxBuf, sizeof(rxBuf), &rcvLen );
     if (ret != ERR_NONE)
@@ -1657,23 +1662,19 @@ static void readNFCVSingleBlock(void)
 static void writeNFCVSingleBlock(void)
 {
     /* Setup the required variables     */
-    ReturnCode ret;                          /* The value returned from the various functions */
-    uint8_t i, j;                              /* Counter */
-    uint16_t    rcvdLen;                       /* The number of bits received without collision */
-    uint8_t devLimit = 10;                  /* The maximum number of devices to detect */
-    rfalNfcvListenDevice nfcvDevList[devLimit];      /* Device Structure. */
-    uint8_t devCnt = 0;                          /* Count of the devices found */
-    uint16_t rxBufLen = 32;                          /* Length of the rxbuf */
-    uint8_t rxBuf[rxBufLen];                   /* Where the received information is stored */
-    uint16_t rcvLen;                           /* Received length of data */
-    rfalNfcvInventoryRes invRes;               /* inventory list */
-    bool found = false;                           /* Indicator if a item has been found and hence to continue */
-    uint8_t blockLen = 4;                       /* The length of the block to be written */
-    uint8_t wrData[blockLen];                            /* Data to be written to the block */
-    //wrData[0] = 32;
-    //wrData[1] = 16;
-    //wrData[2] = 32;
-    //wrData[3] = 16;
+    ReturnCode ret;                                  /* The value returned from the various functions */
+    uint8_t i, j;                                   /* Counter */
+    uint16_t    rcvdLen;                            /* The number of bits received without collision */
+    uint8_t devLimit = 10;                          /* The maximum number of devices to detect */
+    rfalNfcvListenDevice nfcvDevList[devLimit];    /* Device Structure. */
+    uint8_t devCnt = 0;                             /* Count of the devices found */
+    uint16_t rxBufLen = 32;                         /* Length of the rxbuf */
+    uint8_t rxBuf[rxBufLen];                        /* Where the received information is stored */
+    uint16_t rcvLen;                                /* Received length of data */
+    rfalNfcvInventoryRes invRes;                   /* inventory list */
+    bool found = false;                              /* Indicator if a item has been found and hence to continue */
+    uint8_t blockLen = 4;                           /* The length of the block to be written */
+    uint8_t wrData[blockLen];                       /* Data to be written to the block */
 
     /* Initialisation */
     printf("Initialising the chip for NFC V tags\n");
@@ -1701,25 +1702,12 @@ static void writeNFCVSingleBlock(void)
     printf("Checking for a tag in the field (CTRL-C to exit)\n");
     do
     {
-        //printf("DEBUG: In loop waiting for tag\n");
         ret = rfalNfcvPollerCheckPresence( &invRes );
-        //printf("DEBUG: Checking for error:%d against ERR_NONE(%d)\n", ret, ERR_NONE);
         if (ret == ERR_NONE)
         {
-            //for (j=0; j < RFAL_NFCV_UID_LEN; j++)
-            //{
-            //    //printf("Here-2\n");
-            //    printf("%x", *(nfcvDevList[i].InvRes.UID + j));
-            //}
             found = true;
         }
-        //else
-        //{
-        //    printf("Failed to find a tag in the field:%d\n", ret);
-        //    platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
-            //return;
-        //}
-        // printf("DEBUG: Going around again\n");
+
     } while (found != true);
 
     /* Collision Resolution */
@@ -1734,11 +1722,7 @@ static void writeNFCVSingleBlock(void)
     }
     else
     {
-        //;printf("DEBUG: Collision Resolution completed\n");
-        //printf("Address of UID[0] Found:-%d\n", nfcvDevList[0].InvRes.UID);
-        //printf("Pointed To*:: UID[0] Found:-%x\n", *nfcvDevList[0].InvRes.UID);
         printf("Device Count:%d\n", devCnt);
-        //printf("rfal Nfc V UID Length:%d\n", RFAL_NFCV_UID_LEN);
         if (devCnt > 0)
         {
             for (i=0; i < devCnt; i++)
@@ -1773,10 +1757,11 @@ static void writeNFCVSingleBlock(void)
         platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
         return;
     }
-    //else
-    //{
-    //    printf("DEBUG: Tag Selection completed\n");
-    //}
+    else
+    {
+        /* Tunr onthe LED as tag selected */
+        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+    }
 
     /* Read Single Block beforehand*/
     ret = rfalNfvPollerReadSingleBlock( RFAL_NFCV_REQ_FLAG_DEFAULT, NULL, 0, rxBuf, sizeof(rxBuf), &rcvLen );
@@ -1789,13 +1774,11 @@ static void writeNFCVSingleBlock(void)
     }
     else
     {
-        //printf("DEBUG: Tag Block Read\n");
-        //printf("Size of rxBuf:%d\n", sizeof(rxBuf));
-        //printf("received length:%d\n", rcvLen);
         if (rcvLen > 0)
         {
+            /* Write the data to the console */
             printf("Data Before Write:");
-            for (j=1; j < rcvLen; j++)                      /* rxBuf contains flags plus 4 bytes of data */
+            for (j=1; j < rcvLen; j++)                      /* rxBuf contains flags plus 4 bytes of data, hence only printing from posn 1 */
             {
                 printf("%02x", *(rxBuf + j));
             }
@@ -1803,18 +1786,21 @@ static void writeNFCVSingleBlock(void)
         }
     }
     /* Write to block zero */
-    /* Take the data read and add 1 to each of the values to be written */
+    /* Create the data to be written */
+    /* Take the data read and add 1 to each of the values to be written
+     * rxBuf contains flags plus 4 bytes of data, wrData only wants the data to be written */
     
-    for (j=0; j < blockLen; j++)                      /* rxBuf contains flags plus 4 bytes of data */
+    for (j=0; j < blockLen; j++)
     {
         wrData[j] = 1 + *(rxBuf + (j+1));                    /* adding 1 to value written from rxBuf due to byte zero being the flags  */
         if (wrData[j] > 255)
         {
+            /* if the value is greater than 0xFF, reset it to zero */
             wrData[j] = 0;
         }
     }
 
-    /* Write the data to the blcok zero */
+    /* Write the data to the block zero */
     ret = rfalNfvPollerWriteSingleBlock( RFAL_NFCV_REQ_FLAG_DEFAULT, NULL, 0, wrData, 4);
     if (ret != ERR_NONE)
     {
@@ -1826,7 +1812,14 @@ static void writeNFCVSingleBlock(void)
     else
     {
         printf("Data Written successfully\n");
-
+        /* Flash the LED */
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        platformDelay(200);
+        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        platformDelay(200);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        platformDelay(200);
+        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
     }    
 
     /* Read Single Block afterwards*/
