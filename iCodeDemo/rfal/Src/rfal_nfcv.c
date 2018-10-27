@@ -515,7 +515,7 @@ ReturnCode rfalNfvPollerReadSingleBlock( uint8_t flags, uint8_t* uid, uint8_t bl
 }
 
 /*******************************************************************************/
-ReturnCode rfalNfvWriteSingleBlock( uint8_t flags, uint8_t* uid, uint8_t blockNum, uint8_t* wrData, uint8_t blockLen )
+ReturnCode rfalNfvPollerWriteSingleBlock( uint8_t flags, uint8_t* uid, uint8_t blockNum, uint8_t* wrData, uint8_t blockLen )
 {
     ReturnCode         ret;
     uint16_t           rcvLen;
