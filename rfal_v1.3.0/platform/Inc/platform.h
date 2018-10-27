@@ -83,7 +83,7 @@
 #define LED_NFCV_PORT				0  */       /* These have been removed as they are not required as LEDs are not being used*/
 
 /* New bit added by MB to have a single LED to indicate presence of a tag */
-#define LED_TAG_READ_PIN            21  
+#define LED_TAG_READ_PIN            27  
 #define LED_TAG_READ_PORT           0
 
 #define LED_FIELD_Pin				17           /* Was 24 - MB */

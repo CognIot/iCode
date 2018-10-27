@@ -139,8 +139,10 @@ HAL_statusTypeDef spiTxRx(const uint8_t *txData, uint8_t *rxData, uint8_t length
 
 	if (txData)
 		transfer.tx_buf = (unsigned long) txData;
+        //printf("Sending:%x\n", txData);
 	if (rxData)
-		transfer.rx_buf = (unsigned long) rxData;	
+		transfer.rx_buf = (unsigned long) rxData;
+        //printf("Receive:%x\n", rxData);
 	transfer.len 		= (unsigned int) length;
 	transfer.speed_hz 	= SPI_MAX_FREQ;
 	transfer.bits_per_word 	= SPI_BITS_PER_WORD;

@@ -257,12 +257,13 @@ extern void exampleRfalPollerRun( void )
     splashscreen();
     
     rfalAnalogConfigInitialize();                                                     /* Initialize RFAL's Analog Configs */
-	rfalInitialize();                                                                 /* Initialize RFAL */
+    rfalInitialize();                                                                 /* Initialize RFAL */
 	//platformLog("\n\rExample RFAL Poller started \r\n");
 
    
 	for(;;)
 	{
+
 	    rfalWorker();                                                                 /* Execute RFAL process */
 
 	    /* switchoff all the leds at start */
