@@ -194,7 +194,7 @@ int splashscreen(void)
     printf("\n***********************************************\n");
     printf("*             Bostin Technology               *\n");
     printf("*                                             *\n");
-    printf("*                NFC2 Reader                  *\n");
+    printf("*               iCode Reader                  *\n");
     printf("*                                             *\n");
     printf("*           Based on the ST25R3911B           *\n");
     printf("*             demo provided by ST             *\n");
