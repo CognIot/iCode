@@ -1,52 +1,19 @@
 
 /******************************************************************************
-  * @attention
   *
-  * <h2><center>&copy; COPYRIGHT 2018 STMicroelectronics</center></h2>
+  * Example software provided by Bostin Technology Ltd
   *
-  * Licensed under ST MYLIBERTY SOFTWARE LICENSE AGREEMENT (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
+  * This software comes with no warrently and is provided as a demo application
+  * for use with the ST25R3911B NFC controller
+  *
+  * For more information    www.Cogniot.eu
+  *
+  * Used in conjunction with STMicroelectronics
   *
   *        http://www.st.com/myliberty
   *
-  * Unless required by applicable law or agreed to in writing, software 
-  * distributed under the License is distributed on an "AS IS" BASIS, 
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied,
-  * AND SPECIFICALLY DISCLAIMING THE IMPLIED WARRANTIES OF MERCHANTABILITY,
-  * FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  *
 ******************************************************************************/
 
-
-/*
- *      PROJECT:   ST25R391x firmware
- *      LANGUAGE:  ISO C99
- */
-
-/*  \file exampleRfalPoller.c
- * 
- *  \example exampleRfalPoller.c
- *
- *  \author Gustavo Patricio 
- *
- *  \brief  NFC Poller/Reader device (PCD) example
- *  
- *   This example shows how to use the different RFAL modules to perform all 
- *   procedures required as a NFC Poller / Reader device (PCD).
- *   
- *   It performs all the necessary steps to detect and activate a nearby device
- *   (Tags/Cards and P2P enabled devices such as phones). Once the device has 
- *   been activated a presence check is performed in a loop until the device 
- *   has been removed. 
- *   
- *   This example follows the guidelines described on NFC Forum Activity spec
- *   but it does not fully implement all its requirements.
- *      
- *   
- */
 
 /*
  ******************************************************************************
@@ -57,8 +24,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <ctype.h>
 #include <stdarg.h>
-#include "example_poller.h"
+#include "exampleNFC.h"
 #include "logger.h"
 #include "st_errno.h"
 #include "utils.h"
@@ -125,7 +93,8 @@ typedef enum{
     EXAMPLE_RFAL_POLLER_TYPE_NFCA  =  0,                 /* NFC-A device type           */
     EXAMPLE_RFAL_POLLER_TYPE_NFCB  =  1,                 /* NFC-B device type           */
     EXAMPLE_RFAL_POLLER_TYPE_NFCF  =  2,                 /* NFC-F device type           */
-    EXAMPLE_RFAL_POLLER_TYPE_NFCV  =  3                  /* NFC-V device type           */
+    EXAMPLE_RFAL_POLLER_TYPE_NFCV  =  3,                 /* NFC-V device type           */
+    EXAMPLE_RFAL_POLLER_TYPE_NONE  =  99                 /* UNknown or not selected NFC type */
 }exampleRfalPollerDevType;
 
 
@@ -169,22 +138,25 @@ static uint8_t                 t5tSysInfoReq[] = { 0x02, 0x2B };                
 static uint8_t                 nfcbReq[]       = { 0x00 };                                                                                       /* NFC-B proprietary command */
 static uint8_t                 llcpSymm[]      = { 0x00, 0x00 };                                                                                 /* LLCP SYMM command */
 
+// Added by MB as a test to send a different command
+static uint8_t                 CommandToSend[] = { 0x02, 0x20, 0x00 };
+
 static uint8_t                 gNfcid3[]       = {0x01, 0xFE, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A };                                  /* NFCID3 used for ATR_REQ */
 static uint8_t                 gGenBytes[]     = { 0x46, 0x66, 0x6d, 0x01, 0x01, 0x11, 0x02, 0x02, 0x07, 0x80, 0x03, 0x02, 0x00, 0x03, 0x04, 0x01, 0x32, 0x07, 0x01, 0x03 }; /* P2P General Bytes: LCCP Connect */
 
 /*******************************************************************************/
 
-static uint8_t                 gDevCnt;                                 /* Number of devices found                         */
+static uint8_t                   gDevCnt;                                 /* Number of devices found                         */
 static exampleRfalPollerDevice gDevList[EXAMPLE_RFAL_POLLER_DEVICES];   /* Device List                                     */
 static exampleRfalPollerState  gState;                                  /* Main state                                      */
-static uint8_t                 gTechsFound;                             /* Technologies found bitmask                      */
-exampleRfalPollerDevice        *gActiveDev;                             /* Active device pointer                           */
-static uint16_t                gRcvLen;                                 /* Received length                                 */
-static bool                    gRxChaining;                             /* Rx chaining flag                                */
+static uint8_t                   gTechsFound;                             /* Technologies found bitmask                      */
+exampleRfalPollerDevice         *gActiveDev;                             /* Active device pointer                           */
+static uint16_t                  gRcvLen;                                 /* Received length                                 */
+static bool                       gRxChaining;                             /* Rx chaining flag                                */
 
 /*! Transmit buffers union, only one interface is used at a time                                                           */
 static union{
-    uint8_t                 rfTxBuf[EXAMPLE_RFAL_POLLER_RF_BUF_LEN];    /* RF Tx buffer (not used on this demo)            */
+    uint8_t                rfTxBuf[EXAMPLE_RFAL_POLLER_RF_BUF_LEN];    /* RF Tx buffer (not used on this demo)            */
     rfalIsoDepBufFormat     isoDepTxBuf;                                /* ISO-DEP Tx buffer format (with header/prologue) */
     rfalNfcDepBufFormat     nfcDepTxBuf;                                /* NFC-DEP Rx buffer format (with header/prologue) */
 }gTxBuf;
@@ -192,7 +164,7 @@ static union{
 
 /*! Receive buffers union, only one interface is used at a time                                                            */
 static union {
-    uint8_t                 rfRxBuf[EXAMPLE_RFAL_POLLER_RF_BUF_LEN];    /* RF Rx buffer                                    */
+    uint8_t                rfRxBuf[EXAMPLE_RFAL_POLLER_RF_BUF_LEN];    /* RF Rx buffer                                    */
     rfalIsoDepBufFormat     isoDepRxBuf;                                /* ISO-DEP Rx buffer format (with header/prologue) */
     rfalNfcDepBufFormat     nfcDepRxBuf;                                /* NFC-DEP Rx buffer format (with header/prologue) */
 }gRxBuf;
@@ -222,14 +194,13 @@ int splashscreen(void)
     printf("\n***********************************************\n");
     printf("*             Bostin Technology               *\n");
     printf("*                                             *\n");
-    printf("*                NFC2 Reader                  *\n");
+    printf("*               iCode Reader                  *\n");
     printf("*                                             *\n");
     printf("*           Based on the ST25R3911B           *\n");
     printf("*             demo provided by ST             *\n");
     printf("*                                             *\n");
     printf("*        for more info www.cognIoT.eu         *\n");
     printf("***********************************************\n");
-    platformDelay(2000);
     return (0);
 }
 
@@ -254,12 +225,8 @@ extern void exampleRfalPollerRun( void )
     ReturnCode err;
     uint8_t    i;
     
-    splashscreen();
-    
     rfalAnalogConfigInitialize();                                                     /* Initialize RFAL's Analog Configs */
     rfalInitialize();                                                                 /* Initialize RFAL */
-	//platformLog("\n\rExample RFAL Poller started \r\n");
-
    
 	for(;;)
 	{
@@ -267,10 +234,6 @@ extern void exampleRfalPollerRun( void )
 	    rfalWorker();                                                                 /* Execute RFAL process */
 
 	    /* switchoff all the leds at start */
-	    //platformLedOff(LED_NFCA_PORT, LED_NFCA_PIN);
-	    //platformLedOff(LED_NFCB_PORT, LED_NFCB_PIN);
-	    //platformLedOff(LED_NFCF_PORT, LED_NFCF_PIN);
-	    //platformLedOff(LED_NFCV_PORT, LED_NFCV_PIN);    
 	    platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);                        /* Added by MB to switch LED off */
 
         platformLedOn(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
@@ -320,30 +283,25 @@ extern void exampleRfalPollerRun( void )
 	                {
 	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCA:
 	                        platformLog( " NFC-A device UID: %s \r\n", hex2str(gDevList[i].dev.nfca.nfcId1, gDevList[i].dev.nfca.nfcId1Len) );
-	                        //platformLedOn( LED_NFCA_PORT, LED_NFCA_PIN  );
                             platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
 	                        break;
 	                        
 	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCB:
 	                        platformLog( " NFC-B device UID: %s \r\n", hex2str(gDevList[i].dev.nfcb.sensbRes.nfcid0, RFAL_NFCB_NFCID0_LEN) );
-	                        //platformLedOn( LED_NFCB_PORT, LED_NFCB_PIN  );
                             platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
                             break;
                             
 	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCF:
 	                        platformLog( " NFC-F device UID: %s \r\n", hex2str(gDevList[i].dev.nfcf.sensfRes.NFCID2, RFAL_NFCF_NFCID2_LEN) );
-                            //platformLedOn( LED_NFCF_PORT, LED_NFCF_PIN  );
                             platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
                             break;
                             
 	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCV:
 	                        platformLog( " NFC-V device UID: %s \r\n", hex2str(gDevList[i].dev.nfcv.InvRes.UID, RFAL_NFCV_UID_LEN) );
-                            //platformLedOn( LED_NFCV_PORT, LED_NFCV_PIN  );
                             platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
                             break;
 	                }
 	            }
-	            //platformDelay(200);
 	            gState = EXAMPLE_RFAL_POLLER_STATE_ACTIVATION;                        /* Device(s) have been identified, go to Activation */
                 break;
 	        
@@ -351,7 +309,7 @@ extern void exampleRfalPollerRun( void )
             /*******************************************************************************/
 	        case EXAMPLE_RFAL_POLLER_STATE_ACTIVATION:
 #if 0
-	            if( !exampleRfalPollerActivation( 0 ) )                               /* Any device previous identified can be Activated, on this example will select the firt on the list */
+	            if( !exampleRfalPollerActivation( 0 ) )                               /* Any device previous identified can be Activated, on this example will select the first on the list */
 	            {
                     gState = EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION;                  /* If Activation failed, restart loop */
                     break;
@@ -364,7 +322,7 @@ extern void exampleRfalPollerRun( void )
 	            
             /*******************************************************************************/
 #if 0	        
-		case EXAMPLE_RFAL_POLLER_STATE_DATAEXCHANGE_START:                       
+            case EXAMPLE_RFAL_POLLER_STATE_DATAEXCHANGE_START:                       
 	        case EXAMPLE_RFAL_POLLER_STATE_DATAEXCHANGE_CHECK:
 	                
 	            err = exampleRfalPollerDataExchange();                                /* Perform Data Exchange, in this example a simple transfer will executed in order to do device's presence check */
@@ -846,6 +804,7 @@ static ReturnCode exampleRfalPollerDataExchange( void )
     rfalNfcDepTxRxParam   nfcDepTxRx;
     uint8_t               *txBuf;
     uint16_t              txBufLen;
+    uint8_t             response;
     
     
     /*******************************************************************************/
@@ -913,6 +872,7 @@ static ReturnCode exampleRfalPollerDataExchange( void )
                     case EXAMPLE_RFAL_POLLER_TYPE_NFCV:
                         
                         /* To perform presence check, on this example a Get System Information command is used */
+
                         txBuf    = t5tSysInfoReq;
                         txBufLen = sizeof(t5tSysInfoReq);
                         break;
@@ -926,6 +886,7 @@ static ReturnCode exampleRfalPollerDataExchange( void )
                 /*******************************************************************************/
                 /* Trigger a RFAL Transceive using the previous defined frames                 */
                 rfalCreateByteFlagsTxRxContext( ctx, txBuf, txBufLen, gRxBuf.rfRxBuf, sizeof(gRxBuf.rfRxBuf), &gRcvLen, RFAL_TXRX_FLAGS_DEFAULT, rfalConvMsTo1fc(20) );
+
                 return (((err = rfalStartTransceive( &ctx )) == ERR_NONE) ? ERR_BUSY : err);     /* Signal ERR_BUSY as Data Exchange has been started and is ongoing */
                 
             case EXAMPLE_RFAL_POLLER_INTERFACE_ISODEP:
@@ -980,7 +941,8 @@ static ReturnCode exampleRfalPollerDataExchange( void )
         {
             /*******************************************************************************/
             case EXAMPLE_RFAL_POLLER_INTERFACE_RF:
-                return rfalGetTransceiveStatus();
+                response = rfalGetTransceiveStatus();
+                return response;
                 
             /*******************************************************************************/
             case EXAMPLE_RFAL_POLLER_INTERFACE_ISODEP:
@@ -1081,4 +1043,934 @@ void platformLogCreateHeader(char* buf)
 
 	strcat(buf, "\n\n");	
 	platformDelay(40);
+}
+
+/*!
+ ******************************************************************************
+ * \brief xample NFC Detection Routine
+ * 
+ * This method implements a state machine going thought all the 
+ * different modes that a Reader needs to perform to identify differnet cards
+ * 
+ * 
+ ******************************************************************************
+ */
+ 
+extern void exampleNFCDetection( void )
+{
+    ReturnCode err;
+    uint8_t    i;
+    
+    rfalAnalogConfigInitialize();                                                     /* Initialize RFAL's Analog Configs */
+    rfalInitialize();                                                                 /* Initialize RFAL */
+   
+	for(;;)
+	{
+
+	    rfalWorker();                                                                 /* Execute RFAL process */
+
+	    /* switchoff all the leds at start */
+	    platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);                        /* Added by MB to switch LED off */
+
+        platformLedOn(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
+		platformDelay(20);
+
+	    switch( gState )
+	    {
+	        /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_INIT:                                     
+	            
+	            gTechsFound = EXAMPLE_RFAL_POLLER_FOUND_NONE; 
+	            gActiveDev  = NULL;
+	            gDevCnt     = 0;
+	            
+	            gState = EXAMPLE_RFAL_POLLER_STATE_TECHDETECT;
+	            break;
+	            
+	            
+            /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_TECHDETECT:
+	            
+	            if( !exampleRfalPollerTechDetetection() )                             /* Poll for nearby devices in different technologies */
+	            {
+	                gState = EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION;                  /* If no device was found, restart loop */
+	                break;
+	            }
+	            
+	            gState = EXAMPLE_RFAL_POLLER_STATE_COLAVOIDANCE;                      /* One or more devices found, go to Collision Avoidance */
+	            break;
+	            
+	            
+            /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_COLAVOIDANCE:
+	            
+	            if( !exampleRfalPollerCollResolution() )                              /* Resolve any eventual collision */
+                {
+                    gState = EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION;                  /* If Collision Resolution was unable to retrieve any device, restart loop */
+                    break;
+                }
+	            
+	            platformLog("Device(s) found: %d \r\n", gDevCnt);
+	            
+	            for(i=0; i<gDevCnt; i++)
+	            {
+	                switch( gDevList[i].type )
+	                {
+	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCA:
+	                        platformLog( " NFC-A device UID: %s \r\n", hex2str(gDevList[i].dev.nfca.nfcId1, gDevList[i].dev.nfca.nfcId1Len) );
+	                        break;
+	                        
+	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCB:
+	                        platformLog( " NFC-B device UID: %s \r\n", hex2str(gDevList[i].dev.nfcb.sensbRes.nfcid0, RFAL_NFCB_NFCID0_LEN) );
+                            break;
+                            
+	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCF:
+	                        platformLog( " NFC-F device UID: %s \r\n", hex2str(gDevList[i].dev.nfcf.sensfRes.NFCID2, RFAL_NFCF_NFCID2_LEN) );
+                            break;
+                            
+	                    case EXAMPLE_RFAL_POLLER_TYPE_NFCV:
+	                        platformLog( " NFC-V device UID: %s \r\n", hex2str(gDevList[i].dev.nfcv.InvRes.UID, RFAL_NFCV_UID_LEN) );
+                            break;
+	                }
+                    platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);               /* Switch on LED to indicate card identified */
+
+	            }
+	            gState = EXAMPLE_RFAL_POLLER_STATE_ACTIVATION;                        /* Device(s) have been identified, go to Activation */
+                break;
+	        
+                
+            /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_ACTIVATION:
+	        case EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION:
+          
+	            rfalFieldOff();                                                       /* Turn the Field Off powering down any device nearby */
+                platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+
+	            platformDelay(2);                                                     /* Remain a certain period with field off */
+	            gState = EXAMPLE_RFAL_POLLER_STATE_INIT;                              /* Restart the loop */
+
+                platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
+                            
+                platformLogClear();
+                platformLog2Screen(logBuffer);
+
+	            break;
+	        
+	        
+            /*******************************************************************************/
+	        default:
+	            return;
+	    }
+	}
+}
+
+/*!
+ ******************************************************************************
+ * \brief Select the type of NFC to be scanned for
+ * 
+ * This method takes user inp[ut and selects the specific card type to be scanned
+ * 
+ * \return type         : the chosen NFC type or none if not required
+ * 
+ ******************************************************************************
+ */
+static int selectNFCType(void)
+{
+    char option;
+    exampleRfalPollerDevType choice = EXAMPLE_RFAL_POLLER_TYPE_NONE;
+    
+    /* Present the options to the user */
+    printf(" \n\n");
+    printf("**************************************************************************\n");
+    printf("Available NFC Types: -\n\n");
+    printf("A - NFC-A device\n");
+    printf("B - NFC-B device\n");
+    printf("F - NFC-F device\n");
+    printf("V - NFC-V device\n");
+    printf("e - return \n");
+    printf(" \n");
+
+    printf("Please select choice -> ");
+
+    option = getchar();
+    getchar();  // have to press enter and this consumes the enter character
+    switch (tolower(option))
+    {
+        case 'a':
+            choice = EXAMPLE_RFAL_POLLER_TYPE_NFCA;
+            break;
+        case 'b':
+            choice = EXAMPLE_RFAL_POLLER_TYPE_NFCB;
+            break;
+        case 'f':
+            choice = EXAMPLE_RFAL_POLLER_TYPE_NFCF;
+            break;
+        case 'v':
+            choice = EXAMPLE_RFAL_POLLER_TYPE_NFCV;
+            break;
+        default:
+            choice = EXAMPLE_RFAL_POLLER_TYPE_NONE;
+            break;
+        }
+    return choice;
+}
+
+/*!
+ ******************************************************************************
+ * \brief Scan for the given type of NFC to be scanned for
+ * 
+ * This method takes the given type and returns once it has been scanned
+ * 
+ ******************************************************************************
+ */
+static void scanforNFCType(exampleRfalPollerDevType device_type)
+{
+    uint8_t    i;
+
+    bool tag_found = false;                                 /* Used to identify when the right tag type has been detected */
+    bool finished = false;
+    
+    rfalAnalogConfigInitialize();                                                     /* Initialize RFAL's Analog Configs */
+    rfalInitialize();                                                                 /* Initialize RFAL */
+
+    /* switchoff all the leds at start */
+    platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);                        /* Added by MB to switch LED off */
+   
+	do
+	{
+	    rfalWorker();                                                                 /* Execute RFAL process */
+
+
+        platformLedOn(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+		platformDelay(20);
+
+	    switch( gState )
+	    {
+	        /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_INIT:                                     
+	            
+	            gTechsFound = EXAMPLE_RFAL_POLLER_FOUND_NONE; 
+	            gActiveDev  = NULL;
+	            gDevCnt     = 0;
+	            
+	            gState = EXAMPLE_RFAL_POLLER_STATE_TECHDETECT;
+	            break;
+	            
+	            
+            /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_TECHDETECT:
+	            
+	            if( !exampleRfalPollerTechDetetection() )                             /* Poll for nearby devices in different technologies */
+	            {
+	                gState = EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION;                  /* If no device was found, restart loop */
+	                break;
+	            }
+	            
+	            gState = EXAMPLE_RFAL_POLLER_STATE_COLAVOIDANCE;                      /* One or more devices found, go to Collision Avoidance */
+	            break;
+	            
+	            
+            /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_COLAVOIDANCE:
+	            
+	            if( !exampleRfalPollerCollResolution() )                              /* Resolve any eventual collision */
+                {
+                    gState = EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION;                  /* If Collision Resolution was unable to retrieve any device, restart loop */
+                    break;
+                }
+	            
+	            platformLog("Device(s) found: %d \r\n", gDevCnt);
+
+	            for(i=0; i<gDevCnt; i++)
+	            {
+                    if (gDevList[i].type == device_type)
+                    {
+                        tag_found = true;
+                        switch( device_type )
+                        {
+                            case EXAMPLE_RFAL_POLLER_TYPE_NFCA:
+                                platformLog( " NFC-A device UID: %s \r\n", hex2str(gDevList[i].dev.nfca.nfcId1, gDevList[i].dev.nfca.nfcId1Len) );
+                                break;
+                                
+                            case EXAMPLE_RFAL_POLLER_TYPE_NFCB:
+                                platformLog( " NFC-B device UID: %s \r\n", hex2str(gDevList[i].dev.nfcb.sensbRes.nfcid0, RFAL_NFCB_NFCID0_LEN) );
+                                break;
+                                
+                            case EXAMPLE_RFAL_POLLER_TYPE_NFCF:
+                                platformLog( " NFC-F device UID: %s \r\n", hex2str(gDevList[i].dev.nfcf.sensfRes.NFCID2, RFAL_NFCF_NFCID2_LEN) );
+                                break;
+                                
+                            case EXAMPLE_RFAL_POLLER_TYPE_NFCV:
+                                platformLog( " NFC-V device UID: %s \r\n", hex2str(gDevList[i].dev.nfcv.InvRes.UID, RFAL_NFCV_UID_LEN) );
+                                break;
+                        }
+                        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);               /* Switch on LED to indicate card identified */
+                        platformDelay(20);
+
+
+
+                        
+                    }
+
+	            }
+	            gState = EXAMPLE_RFAL_POLLER_STATE_ACTIVATION;                        /* Device(s) have been identified, go to Activation */
+                break;
+	        
+                
+            /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_ACTIVATION:
+	        case EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION:
+          
+	            rfalFieldOff();                                                       /* Turn the Field Off powering down any device nearby */
+                platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+
+	            platformDelay(2);                                                     /* Remain a certain period with field off */
+	            gState = EXAMPLE_RFAL_POLLER_STATE_INIT;                              /* Restart the loop */
+
+                platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
+                if (tag_found == true)
+                    finished = true;
+                    
+                platformLogClear();
+                platformLog2Screen(logBuffer);
+
+	            break;
+	        
+	        
+            /*******************************************************************************/
+	        default:
+	            return;
+	    }
+	} while (finished == false);
+
+}
+
+/*!
+ ******************************************************************************
+ * \brief Read the memory for the given type of NFC
+ * 
+ * This method takes the given type and returns once it has read the memory
+ * 
+ ******************************************************************************
+ */
+
+static void readNFCMemory(exampleRfalPollerDevType device_type)
+{
+    uint8_t    i;
+    ReturnCode            err;
+    bool memory_read = false;                                 /* Used to identify when the right tag type has been detected */
+    bool finished = false;
+    uint8_t     position = 0;                               /* The position in the devices detected to be read */
+    
+    rfalAnalogConfigInitialize();                                                     /* Initialize RFAL's Analog Configs */
+    rfalInitialize();                                                                 /* Initialize RFAL */
+   
+    do
+	{
+
+	    rfalWorker();                                                                 /* Execute RFAL process */
+
+	    /* switchoff all the leds at start */
+	    platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);                        /* Added by MB to switch LED off */
+
+        platformLedOn(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+		platformDelay(20);
+
+	    switch( gState )
+	    {
+	        /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_INIT:                                     
+	            
+	            gTechsFound = EXAMPLE_RFAL_POLLER_FOUND_NONE; 
+	            gActiveDev  = NULL;
+	            gDevCnt     = 0;
+	            
+	            gState = EXAMPLE_RFAL_POLLER_STATE_TECHDETECT;
+	            break;
+	            
+	            
+            /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_TECHDETECT:
+	            
+	            if( !exampleRfalPollerTechDetetection() )                             /* Poll for nearby devices in different technologies */
+	            {
+	                gState = EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION;                  /* If no device was found, restart loop */
+	                break;
+	            }
+	            
+	            gState = EXAMPLE_RFAL_POLLER_STATE_COLAVOIDANCE;                      /* One or more devices found, go to Collision Avoidance */
+	            break;
+	            
+	            
+            /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_COLAVOIDANCE:
+	            
+	            if( !exampleRfalPollerCollResolution() )                              /* Resolve any eventual collision */
+                {
+                    gState = EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION;                  /* If Collision Resolution was unable to retrieve any device, restart loop */
+                    break;
+                }
+	            
+	            platformLog("Device(s) found: %d \r\n", gDevCnt);
+
+	            for(i=0; i<gDevCnt; i++)
+	            {
+                    if (gDevList[i].type == device_type)
+                    {
+                        switch( device_type )
+                        {
+                            case EXAMPLE_RFAL_POLLER_TYPE_NFCA:
+                                platformLog( " NFC-A device UID: %s \r\n", hex2str(gDevList[i].dev.nfca.nfcId1, gDevList[i].dev.nfca.nfcId1Len) );
+                                break;
+                                
+                            case EXAMPLE_RFAL_POLLER_TYPE_NFCB:
+                                platformLog( " NFC-B device UID: %s \r\n", hex2str(gDevList[i].dev.nfcb.sensbRes.nfcid0, RFAL_NFCB_NFCID0_LEN) );
+                                break;
+                                
+                            case EXAMPLE_RFAL_POLLER_TYPE_NFCF:
+                                platformLog( " NFC-F device UID: %s \r\n", hex2str(gDevList[i].dev.nfcf.sensfRes.NFCID2, RFAL_NFCF_NFCID2_LEN) );
+                                break;
+                                
+                            case EXAMPLE_RFAL_POLLER_TYPE_NFCV:
+                                platformLog( " NFC-V device UID: %s \r\n", hex2str(gDevList[i].dev.nfcv.InvRes.UID, RFAL_NFCV_UID_LEN) );
+                                break;
+                        }
+                        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);               /* Switch on LED to indicate card identified */
+                        platformDelay(20);
+                        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);               /* Switch on LED to indicate card identified */
+                        platformDelay(20);
+                        position = i;
+                    }
+
+	            }
+	            gState = EXAMPLE_RFAL_POLLER_STATE_ACTIVATION;                        /* Device(s) have been identified, go to Activation */
+                break;
+
+            /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_ACTIVATION:
+
+	            if( !exampleRfalPollerActivation( position ) )                               /* Any device previous identified can be Activated.  */
+	            {
+                    gState = EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION;                  /* If Activation failed, restart loop */
+                    position = 0;
+                    break;
+                }
+	            gState = EXAMPLE_RFAL_POLLER_STATE_DATAEXCHANGE_START;                /* Device has been properly activated, go to Data Exchange */
+		    break;
+            
+	            
+            /*******************************************************************************/
+            case EXAMPLE_RFAL_POLLER_STATE_DATAEXCHANGE_START:                       
+	        case EXAMPLE_RFAL_POLLER_STATE_DATAEXCHANGE_CHECK:
+
+	            err = exampleRfalPollerDataExchange();                                /* Perform Data Exchange, in this example a simple transfer will executed in order to do device's presence check */
+                switch( err )
+                {
+                    case ERR_NONE:                                                    /* Data exchange successful  */
+                        platformDelay(300);                                           /* Wait a bit */
+                        //gState = EXAMPLE_RFAL_POLLER_STATE_DATAEXCHANGE_START;        /* Trigger new exchange with device */
+                        gState = EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION;                /* Trigger new exchange with device - changed by MB*/
+                        break;
+                        
+                    case ERR_BUSY:                                                    /* Data exchange ongoing  */
+                        gState = EXAMPLE_RFAL_POLLER_STATE_DATAEXCHANGE_CHECK;        /* Once triggered/started the Data Exchange only do check until is completed */
+                        memory_read = true;
+                        break;
+                        
+                    default:                                                          /* Data exchange not successful, card removed or other transmission error */
+                        gState = EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION;              /* Restart loop */
+                        break;
+                }
+                break;
+                
+            /*******************************************************************************/
+	        case EXAMPLE_RFAL_POLLER_STATE_DEACTIVATION:
+
+	            rfalFieldOff();                                                       /* Turn the Field Off powering down any device nearby */
+                platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+
+	            platformDelay(2);                                                     /* Remain a certain period with field off */
+	            gState = EXAMPLE_RFAL_POLLER_STATE_INIT;                              /* Restart the loop */
+
+                platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+
+                if (memory_read == true)
+                    finished = true;
+                            
+                platformLogClear();
+                platformLog2Screen(logBuffer);
+
+	            break;
+	        
+	        
+            /*******************************************************************************/
+
+	        default:
+	            return;
+	    }
+	} while (finished != true);
+
+
+}
+
+/*!
+ ******************************************************************************
+ * \brief Communicate with a NFC-V type tag and read block zero.
+ * 
+ * This method displays the data in block zero
+ * 
+ * \return              : nothing
+ * 
+ ******************************************************************************
+ */
+
+static void readNFCVSingleBlock(void)
+{
+    /* Setup the required variables     */
+    ReturnCode ret;                          /* The value returned from the various functions */
+    uint8_t i, j;                              /* Counter */
+    uint16_t    rcvdLen;                       /* The number of bits received without collision */
+    uint8_t devLimit = 10;                  /* The maximum number of devices to detect */
+    rfalNfcvListenDevice nfcvDevList[devLimit];      /* Device Structure. */
+    uint8_t devCnt = 0;                          /* Count of the devices found */
+    uint16_t rxBufLen = 32;                          /* Length of the rxbuf */
+    uint8_t rxBuf[rxBufLen];                   /* Where the received information is stored */
+    uint16_t rcvLen;                           /* Received length of data */
+    rfalNfcvInventoryRes invRes;               /* inventory list */
+    bool found = false;                           /* Indicator if a item has been found and hence to continue */
+      
+
+    /* Initialisation */
+    printf("Initialising the chip for NFC V tags\n");
+
+    platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+    platformLedOn(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+
+    rfalAnalogConfigInitialize();                                          /* Initialize RFAL's Analog Configs */
+    rfalInitialize();                                                      /* Initialize RFAL */
+
+    ret = rfalNfcvPollerInitialize();
+    if (ret != ERR_NONE)
+    {
+        printf("Failed to Initialize:%s\n", ret);
+        platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+
+        return;
+    }
+    rfalFieldOnAndStartGT();                                               /* Turns the Field on if not already and start GT Timer */
+
+    /* Check Presence */                                                /* What if multiple tags??*/
+    printf("Checking for a tag in the field (CTRL-C to exit)\n");
+    do
+    {
+        ret = rfalNfcvPollerCheckPresence( &invRes );
+        if (ret == ERR_NONE)
+        {
+            found = true;
+        }
+    } while (found != true);
+
+    /* Collision Resolution */
+    printf("Performing Collision Resolution\n");
+    ret = rfalNfcvPollerCollisionResolution( devLimit, nfcvDevList, &devCnt );
+    if (ret != ERR_NONE)
+    {
+        printf("Failed to complete collision resolution:%d\n", ret);
+        platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        return;
+    }
+    else
+    {
+        printf("Device Count:%d\n", devCnt);
+        if (devCnt > 0)
+        {
+            for (i=0; i < devCnt; i++)
+            {
+                printf("UID:");
+                for (j=0; j < RFAL_NFCV_UID_LEN; j++)
+                {
+                    printf("%x", *(nfcvDevList[i].InvRes.UID + j));
+                }
+                printf("\n");
+            }
+        }
+        else
+        {
+            /* No devices found during collision resolution */
+            printf("Communication with tag lost during Collision Resolution, memory read aborted\n");
+            platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+            platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+            return;
+        }          
+    }
+    
+    /* Select tag */
+    printf("Reading the first tag found\n");
+    ret = rfalNfvPollerSelect( RFAL_NFCV_REQ_FLAG_DEFAULT, nfcvDevList[0].InvRes.UID );
+    if (ret != ERR_NONE)
+    {
+        printf("Failed to complete tag Selection Selection with the following error code:%d\n", ret);
+        platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        return;
+    }
+    else
+    {
+        /* Tunr onthe LED as tag selected */
+        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+    }
+    
+    /* Read Single Block */
+    ret = rfalNfvPollerReadSingleBlock( RFAL_NFCV_REQ_FLAG_DEFAULT, NULL, 0, rxBuf, sizeof(rxBuf), &rcvLen );
+    if (ret != ERR_NONE)
+    {
+        printf("Failed to Read block of data for the tag:%d\n", ret);
+        platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        return;
+    }
+    else
+    {
+        if (rcvLen > 0)
+        {
+            printf("Data Received:");
+            for (j=1; j < rcvLen; j++)                      /* rxBuf contains flags plus 4 bytes of data */
+            {
+                printf("%02x", *(rxBuf + j));
+            }
+            printf("\n");
+        }
+    }
+
+    platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+    platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+}
+
+
+/*!
+ ******************************************************************************
+ * \brief Communicate with a NFC-V type tag and write to block zero.
+ * 
+ * This method first reads and then writes a value to block zero
+ * 
+ * \return              : nothing
+ * 
+ ******************************************************************************
+ */
+static void writeNFCVSingleBlock(void)
+{
+    /* Setup the required variables     */
+    ReturnCode ret;                                  /* The value returned from the various functions */
+    uint8_t i, j;                                   /* Counter */
+    uint16_t    rcvdLen;                            /* The number of bits received without collision */
+    uint8_t devLimit = 10;                          /* The maximum number of devices to detect */
+    rfalNfcvListenDevice nfcvDevList[devLimit];    /* Device Structure. */
+    uint8_t devCnt = 0;                             /* Count of the devices found */
+    uint16_t rxBufLen = 32;                         /* Length of the rxbuf */
+    uint8_t rxBuf[rxBufLen];                        /* Where the received information is stored */
+    uint16_t rcvLen;                                /* Received length of data */
+    rfalNfcvInventoryRes invRes;                   /* inventory list */
+    bool found = false;                              /* Indicator if a item has been found and hence to continue */
+    uint8_t blockLen = 4;                           /* The length of the block to be written */
+    uint8_t wrData[blockLen];                       /* Data to be written to the block */
+
+    /* Initialisation */
+    printf("Initialising the chip for NFC V tags\n");
+
+    platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+    platformLedOn(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+
+    rfalAnalogConfigInitialize();                                          /* Initialize RFAL's Analog Configs */
+    rfalInitialize();                                                      /* Initialize RFAL */
+
+    // The following line was added from community forum, not sure it is needed though.
+    // It may need to be after PollerInitialize() though
+
+    ret = rfalNfcvPollerInitialize();
+    if (ret != ERR_NONE)
+    {
+        printf("Failed to Initialize:%s\n", ret);
+        platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+
+        return;
+    }
+    rfalFieldOnAndStartGT();                                               /* Turns the Field on if not already and start GT Timer */
+
+    /* Check Presence */                                                /* What if multiple tags??*/
+    printf("Checking for a tag in the field (CTRL-C to exit)\n");
+    do
+    {
+        ret = rfalNfcvPollerCheckPresence( &invRes );
+        if (ret == ERR_NONE)
+        {
+            found = true;
+        }
+
+    } while (found != true);
+
+    /* Collision Resolution */
+    printf("Performing Collision Resolution\n");
+    ret = rfalNfcvPollerCollisionResolution( devLimit, nfcvDevList, &devCnt );
+    if (ret != ERR_NONE)
+    {
+        printf("Failed to complete collision resolution:%d\n", ret);
+        platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        return;
+    }
+    else
+    {
+        printf("Device Count:%d\n", devCnt);
+        if (devCnt > 0)
+        {
+            for (i=0; i < devCnt; i++)
+            {
+                //printf("Here-1\n");
+                printf("UID:");
+                for (j=0; j < RFAL_NFCV_UID_LEN; j++)
+                {
+                    //printf("Here-2\n");
+                    printf("%x", *(nfcvDevList[i].InvRes.UID + j));
+                }
+                printf("\n");
+            }
+        }
+        else
+        {
+            /* No devices found during collision resolution */
+            printf("Communication with tag lost during Collision Resolution, memory read aborted\n");
+            platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+            platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+            return;
+        }          
+    }
+    
+    /* Select tag */
+    printf("Reading the first tag found\n");
+    ret = rfalNfvPollerSelect( RFAL_NFCV_REQ_FLAG_DEFAULT, nfcvDevList[0].InvRes.UID );
+    if (ret != ERR_NONE)
+    {
+        printf("Failed to complete tag Selection Selection with the following error code:%d\n", ret);
+        platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        return;
+    }
+    else
+    {
+        /* Tunr onthe LED as tag selected */
+        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+    }
+
+    /* Read Single Block beforehand*/
+    ret = rfalNfvPollerReadSingleBlock( RFAL_NFCV_REQ_FLAG_DEFAULT, NULL, 0, rxBuf, sizeof(rxBuf), &rcvLen );
+    if (ret != ERR_NONE)
+    {
+        printf("Failed to Read block of data for the tag:%d\n", ret);
+        platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        return;
+    }
+    else
+    {
+        if (rcvLen > 0)
+        {
+            /* Write the data to the console */
+            printf("Data Before Write:");
+            for (j=1; j < rcvLen; j++)                      /* rxBuf contains flags plus 4 bytes of data, hence only printing from posn 1 */
+            {
+                printf("%02x", *(rxBuf + j));
+            }
+            printf("\n");
+        }
+    }
+    /* Write to block zero */
+    /* Create the data to be written */
+    /* Take the data read and add 1 to each of the values to be written
+     * rxBuf contains flags plus 4 bytes of data, wrData only wants the data to be written */
+    
+    for (j=0; j < blockLen; j++)
+    {
+        wrData[j] = 1 + *(rxBuf + (j+1));                    /* adding 1 to value written from rxBuf due to byte zero being the flags  */
+        if (wrData[j] > 255)
+        {
+            /* if the value is greater than 0xFF, reset it to zero */
+            wrData[j] = 0;
+        }
+    }
+
+    /* Write the data to the block zero */
+    ret = rfalNfvPollerWriteSingleBlock( RFAL_NFCV_REQ_FLAG_DEFAULT, NULL, 0, wrData, 4);
+    if (ret != ERR_NONE)
+    {
+        printf("Failed to Write to block 0 for the tag:%d\n", ret);
+        platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        return;
+    }
+    else
+    {
+        printf("Data Written successfully\n");
+        /* Flash the LED */
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        platformDelay(200);
+        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        platformDelay(200);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        platformDelay(200);
+        platformLedOn(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+    }    
+
+    /* Read Single Block afterwards*/
+    ret = rfalNfvPollerReadSingleBlock( RFAL_NFCV_REQ_FLAG_DEFAULT, NULL, 0, rxBuf, sizeof(rxBuf), &rcvLen );
+    if (ret != ERR_NONE)
+    {
+        printf("Failed to Read block of data for the tag:%d\n", ret);
+        platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+        platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+        return;
+    }
+    else
+    {
+        if (rcvLen > 0)
+        {
+            printf("Data After Write:");
+            for (j=1; j < rcvLen; j++)                      /* rxBuf contains flags plus 4 bytes of data */
+            {
+                printf("%02x", *(rxBuf + j));
+            }
+            printf("\n");
+        }
+    }
+    platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+    platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN);
+}
+
+
+/*!
+ ******************************************************************************
+ * \brief Communicate with a NFC-V type tag and read block zero.
+ * 
+ * This method displays the data in block zero
+ * 
+ * \return              : nothing
+ * 
+ ******************************************************************************
+ */
+
+/*!
+ ******************************************************************************
+ * \brief Hardware Setup of GPIO and SPI
+ * 
+ * This method sets up the GPIO and SPI 
+ * 
+ * \return true         : Setup successful 
+ * \return false        : Setup failed
+ * 
+ ******************************************************************************
+ */
+
+ static bool HardwareInitialisation( void)
+ {
+     int resp;
+    /* Initialize the platform */
+	/* Initialize GPIO */
+  	resp = gpio_init();
+	if(resp != ERR_NONE)
+		return false;
+        
+	/* Initialize SPI */
+	resp = spi_init();
+	if(resp != ERR_NONE)
+		return false;
+        
+	/* Initialize interrupt mechanism */
+	resp = interrupt_init();
+	if (resp != ERR_NONE)
+		return false;
+
+    /* Force both LEDs off at the beginning */
+    platformLedOff(PLATFORM_LED_FIELD_PORT,PLATFORM_LED_FIELD_PIN);
+    platformLedOff(LED_TAG_READ_PORT, LED_TAG_READ_PIN); 
+
+    return true;
+    }
+    
+/*
+ ******************************************************************************
+ * MAIN FUNCTION
+ ******************************************************************************
+ */
+int main(void)
+{
+	setlinebuf(stdout);
+	int ret = 0;
+    char option;
+    exampleRfalPollerDevType type = EXAMPLE_RFAL_POLLER_FOUND_NONE;
+    
+    splashscreen();
+
+    ret = HardwareInitialisation();
+    if (ret != true)
+        return ret;
+
+    do {
+        printf(" \n\n");
+        printf("**************************************************************************\n");
+        printf("Available commands: -\n\n");
+        printf("a - Scan for available cards\n");
+        printf("s - Scan for specific card type\n");
+        printf("m - Example Read card memory (ST Example)\n");
+        printf("v - Read Block Zero from first NFC-V tag found\n");
+        printf("w - Write to Block Zero on the first NFC-V tag found\n");
+        printf("e - Exit program \n");
+        printf(" \n");
+
+        printf("Please select command -> ");
+
+        option = getchar();
+        getchar();  // have to press enter and this consumes the enter character
+
+
+        switch (option)
+        {
+
+            case 'a': // Scan for available cards
+
+                /* Initialize rfal and run example code for NFC */
+                exampleNFCDetection();
+                break;
+            case 's': // Scan for specific cards
+                /* Select the NFC Type Rquired */
+                type = selectNFCType();
+                
+                /* Scan for this card type */
+                scanforNFCType(type);
+                break;
+            case 'm': // Read the card memory
+                /* Select the NFC Type Rquired */
+                type = selectNFCType();
+                
+                /* Scan for this card type */
+                readNFCMemory(type);
+                break;
+            case 'v': // Communicate with NFC V tag (ICode)
+                readNFCVSingleBlock();
+                break;
+            case 'w': // Communicate with NFC V tag (ICode)
+                writeNFCVSingleBlock();
+                break;
+            case 'e':
+                printf("Exiting.......\n");
+                option = 'e';
+                break;
+
+            default:
+                printf("Unrecognised command!\n");
+
+       }
+       fflush (stdout) ;
+
+    } while(option != 'e');
 }

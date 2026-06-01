@@ -86,7 +86,7 @@
 #define LED_TAG_READ_PIN            27  
 #define LED_TAG_READ_PORT           0
 
-#define LED_FIELD_Pin				17           /* Was 24 - MB */
+#define LED_FIELD_Pin				17
 #define LED_FIELD_GPIO_Port			0
 
 #define ST25R391X_SS_PIN                                                /*!< GPIO pin used for ST25R3911 SPI SS */ 
