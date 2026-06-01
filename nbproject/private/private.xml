@@ -9,6 +9,11 @@
     </data>
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
-        <group/>
+        <group>
+            <file>file:/Users/matthew/Documents/Bostin%20Technology/NFC2/rfal_v1.3.0/platform/Src/pltf_gpio.c</file>
+            <file>file:/Users/matthew/Documents/Bostin%20Technology/NFC2/rfal_v1.3.0/applications/nfc_poller/Src/exampleRfalPoller.c</file>
+            <file>file:/Users/matthew/Documents/Bostin%20Technology/NFC2/rfal_v1.3.0/platform/Inc/platform.h</file>
+            <file>file:/Users/matthew/Documents/Bostin%20Technology/NFC2/rfal_v1.3.0/platform/Inc/pltf_gpio.h</file>
+        </group>
     </open-files>
 </project-private>

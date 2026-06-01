@@ -117,6 +117,7 @@
           <DebugOptions>
             <option name="gdb_detach_on_fork" value="off"/>
             <option name="gdb_init_file" value=""/>
+            <option name="debug_command" value="&quot;${OUTPUT_PATH}&quot;"/>
             <option name="debug_dir"
                     value="/Users/matthew/Documents/Bostin Technology/NFC2/."/>
           </DebugOptions>
@@ -136,6 +137,7 @@
         <runcommand>"${OUTPUT_PATH}"</runcommand>
         <rundir>rfal_v1.3.0/build</rundir>
         <buildfirst>false</buildfirst>
+        <console-type>1</console-type>
         <terminal-type>0</terminal-type>
         <remove-instrumentation>0</remove-instrumentation>
         <environment>
